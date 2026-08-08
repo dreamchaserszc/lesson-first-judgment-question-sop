@@ -20,6 +20,7 @@ SKILL_ROOT = REPO_ROOT / "lesson-first-judgment-question-sop"
 def require_files() -> None:
     required = [
         REPO_ROOT / "README.md",
+        REPO_ROOT / "README_EN.md",
         REPO_ROOT / "LICENSE",
         REPO_ROOT / "assets" / "workflow-guizang.png",
         REPO_ROOT / ".gitignore",
@@ -165,6 +166,18 @@ def validate_public_content() -> None:
                 raise AssertionError(f"Forbidden public content in {relative}: {pattern.pattern}")
 
 
+def validate_readme_language_switch() -> None:
+    chinese = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    english = (REPO_ROOT / "README_EN.md").read_text(encoding="utf-8")
+    if "[English](README_EN.md)" not in chinese:
+        raise AssertionError("Chinese README does not link to README_EN.md")
+    if "[中文](README.md)" not in english:
+        raise AssertionError("English README does not link to README.md")
+    image_ref = "assets/workflow-guizang.png"
+    if image_ref not in chinese or image_ref not in english:
+        raise AssertionError("Both READMEs must reference the workflow illustration")
+
+
 def main() -> int:
     checks = [
         require_files,
@@ -173,6 +186,7 @@ def main() -> int:
         validate_python,
         validate_term_smoke_tests,
         validate_public_content,
+        validate_readme_language_switch,
     ]
     for check in checks:
         check()

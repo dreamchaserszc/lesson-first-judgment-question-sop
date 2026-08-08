@@ -1,3 +1,5 @@
+**中文** | [English](README_EN.md)
+
 # 课时先行｜初中数学判断题设计与审核 Skill
 
 ![从理解本课到质量审核的判断题生成机制示意图](assets/workflow-guizang.png)
