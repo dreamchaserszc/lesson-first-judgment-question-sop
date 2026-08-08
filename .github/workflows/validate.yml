@@ -1,0 +1,46 @@
+name: Validate public release
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Validate release structure and content
+        run: python tests/validate_release.py
+
+      - name: Verify allowed terms pass
+        run: >-
+          python lesson-first-judgment-question-sop/scripts/audit_terms.py
+          --lexicon lesson-first-judgment-question-sop/references/lesson-lexicons/SYNTHETIC-G7-I1.json
+          --edition SYNTHETIC
+          --lesson-id SYNTHETIC-G7-I1
+          --audience student
+          --terms 整数 加法 交换律
+
+      - name: Verify unverified terms are blocked
+        shell: bash
+        run: |
+          if python lesson-first-judgment-question-sop/scripts/audit_terms.py \
+            --lexicon lesson-first-judgment-question-sop/references/lesson-lexicons/SYNTHETIC-G7-I1.json \
+            --edition SYNTHETIC \
+            --lesson-id SYNTHETIC-G7-I1 \
+            --audience student \
+            --terms 分配律; then
+            echo "Expected the unverified term to be blocked."
+            exit 1
+          fi
+          echo "Unverified term blocked as expected."

@@ -1,0 +1,70 @@
+{
+  "schema_version": "0.2",
+  "lexicon_id": "SYNTHETIC-G7-I1",
+  "lexicon_type": "LESSON_STANDARD",
+  "lexicon_status": "CURRENT_VERIFIED",
+  "version": "1.0",
+  "edition": "SYNTHETIC",
+  "lesson_id": "SYNTHETIC-G7-I1",
+  "lesson_title": "整数加法的交换律与结合律（合成示例）",
+  "source_policy": "仅登记本仓库合成示例输入中明确出现的术语；该文件不代表任何真实教材、学校或课堂。",
+  "reuse_policy": "只用于仓库演示与脚本测试，不得用于真实课时。",
+  "entries": [
+    {
+      "term": "整数",
+      "status": "SOURCE_EXPLICIT",
+      "audiences": ["student", "teacher"],
+      "source_evidence": ["合成示例输入：讨论任意整数的加法"],
+      "preferred_expression": "整数",
+      "plain_replacement": null
+    },
+    {
+      "term": "加法",
+      "status": "SOURCE_EXPLICIT",
+      "audiences": ["student", "teacher"],
+      "source_evidence": ["合成示例输入：整数加法"],
+      "preferred_expression": "加法",
+      "plain_replacement": null
+    },
+    {
+      "term": "交换律",
+      "status": "SOURCE_EXPLICIT",
+      "audiences": ["student", "teacher"],
+      "source_evidence": ["合成示例输入：a+b=b+a"],
+      "preferred_expression": "加法交换律",
+      "plain_replacement": "交换两个加数的位置，和不变"
+    },
+    {
+      "term": "结合律",
+      "status": "SOURCE_EXPLICIT",
+      "audiences": ["student", "teacher"],
+      "source_evidence": ["合成示例输入：(a+b)+c=a+(b+c)"],
+      "preferred_expression": "加法结合律",
+      "plain_replacement": "三个数相加，先把哪两个数相加，和不变"
+    },
+    {
+      "term": "加数",
+      "status": "SOURCE_EXPLICIT",
+      "audiences": ["student", "teacher"],
+      "source_evidence": ["合成示例输入：交换两个加数的位置"],
+      "preferred_expression": "加数",
+      "plain_replacement": null
+    },
+    {
+      "term": "和",
+      "status": "SOURCE_EXPLICIT",
+      "audiences": ["student", "teacher"],
+      "source_evidence": ["合成示例输入：和不变"],
+      "preferred_expression": "和",
+      "plain_replacement": "相加所得的结果"
+    },
+    {
+      "term": "分配律",
+      "status": "UNVERIFIED",
+      "audiences": [],
+      "source_evidence": ["合成示例输入没有给出乘法与加法之间的分配关系"],
+      "preferred_expression": null,
+      "plain_replacement": "直接写出需要判断的等式"
+    }
+  ]
+}

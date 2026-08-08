@@ -1,0 +1,4 @@
+interface:
+  display_name: "初中数学判断题设计与审核"
+  short_description: "按课时边界、教材词汇和课堂顺读标准生成并审核判断题"
+  default_prompt: "使用 $lesson-first-judgment-question-sop，根据我提供的课题标题或课堂材料，先展示课时理解卡，再按本课标准词表、课堂顺读和自然消歧要求生成并审核初中数学判断题。"
