@@ -1,159 +1,73 @@
 [中文](README.md) | **English**
 
-# Lesson-first Judgment Question SOP
+# Lesson-first Judgment Question SOP (v2.1)
 
 ![Lesson-first workflow from lesson understanding to quality review](assets/workflow-guizang.png)
 
-> Understand the lesson first. Then generate judgment questions that can be proved, refuted, and traced back to what was actually taught.
+> **Understand what this single lesson teaches—and what it excludes—before generating concise, mathematically rigorous Chinese true/false items that sound like a real classroom teacher speaking at the board.**
 
-`lesson-first-judgment-question-sop` is an open-source Codex Skill for generating, auditing, and minimally revising true/false judgment questions for Chinese junior-middle-school mathematics.
+`lesson-first-judgment-question-sop` is an open-source Agent Skill (compatible with **Google Antigravity, OpenAI Codex, and Claude Code**) for generating, auditing, and minimally revising true/false judgment questions for Chinese junior-middle-school mathematics.
 
-It accepts a lesson title, teacher notes, slides, textbook pages, lesson plans, or other classroom materials. Before writing questions, it produces a visible lesson profile that states what the lesson covers, what it excludes, which claims are evidence-backed, and which parts were inferred by AI.
+**Language scope:** Student-facing and teacher-facing outputs are crafted for Chinese middle-school mathematics classrooms. This English README introduces the methodology and architecture to the global open-source community.
 
-**Language scope:** the student-facing output is designed for Chinese mathematics classrooms. This English README explains the method to the international open-source community; it does not turn the Skill into an English-language item generator.
+---
 
-**Release status:** public release candidate. This repository contains the original workflow, general-purpose validation code, and fully synthetic examples. It does not include copyrighted textbook pages, internal school materials, student data, or private lesson lexicons derived from those sources.
+## What's New in v2.1
 
-## The problem it solves
-
-| Common approach | This Skill |
+| Typical LLM Question Generation Pitfall | How v2.1 Solves It |
 | --- | --- |
-| Start from a quota such as “two basic items and two misconception items” | Start from the lesson content and its teaching boundary |
-| Return questions and answer keys only | Require a general justification for true items and a valid counterexample for false items |
-| Fill a fixed number of questions | Keep only items that pass every gate and add unique information |
-| Treat mathematically valid wording as sufficient | Also check textbook terminology, classroom fluency, and natural disambiguation |
-| Review each item in isolation | Run cognitive-overlap and deletion tests on the full set |
-| Present a plausible student difficulty as a diagnosed misconception | Keep unverified hypotheses separate from evidence-backed findings |
+| Filling fixed quotas ("6 or 8 items") with mechanical number swaps | **Diagnostic-boundary-first + deletion test**: item count emerges naturally from distinct conceptual boundaries |
+| Dry definition recall divorced from problem-solving | **Default Dual-Branch Output**: generates both **Knowledge Discrimination** (`≤35` Chinese chars) and **Thinking Discrimination** (`≤55` chars) |
+| Repetitive puppet framing ("Xiaoming thinks... His idea is right.") | **De-puppetization rules**: direct reasoning statements for algebraic/geometric steps; bans spoiler narration and repetitive sentence-end tags |
+| 70-character legalistic disclaimers & out-of-grade quantifiers ("for all real numbers") | **Single group-header classroom convention + strict lesson lexicon gate** |
+| Tautologies after term replacement or robotic scripts bypassing fluency checks | **Anti-tautology circuit breaker + mandatory Read-Aloud Spoken Rewrite Gate** backed by `validate_dual_output.py` |
 
-## What it returns
+---
 
-The default teacher-visible output has four parts:
+## Default Output Structure
 
-1. **Lesson profile** — main content, included scope, excluded scope, evidence basis, AI-inferred items, and unresolved items;
-2. **Student version** — only questions with one defensible truth value and a distinct diagnostic purpose;
-3. **Teacher version** — answers with a short proof, calculation, or valid counterexample;
-4. **Structured record** — stable item IDs, terminology status, quality-gate results, and revision history for project integration or file-based runs.
+1. **Lesson Profile** — main content, included scope, excluded scope, evidence basis, and readiness status (`READY | PENDING_JUDGMENT | INSUFFICIENT_INPUT`);
+2. **Student Version (Dual-Branch)** — clean prose statements (never trapped in layout tables):
+   - **Branch 1: Knowledge Discrimination (`KNOWLEDGE`)** — sharp boundary checks on definitions, properties, and rules;
+   - **Branch 2: Thinking Discrimination (`STUDENT_THINKING`)** — evaluates whether a concrete step's reasoning holds (`√` items are reserved for counter-intuitive yet valid moves, never textbook recitation);
+3. **Teacher Key & Concise Justifications** — `√/×` answers paired with lesson-scoped proofs or concrete counterexamples;
+4. **Selection Notes** — flags cross-branch "pick one of two" pairs (plus an optional **Single-Point Drill-Down** mode on request).
 
-## How it works
+---
 
-```text
-Lesson title / teacher notes / slides / textbook pages / lesson plan
-                              ↓
-                        Lesson profile
-                              ↓
-              Core propositions and lesson boundary
-                              ↓
-                    Candidate judgment items
-                              ↓
-        Terminology → fluency → natural disambiguation
-                              ↓
-        Proof or counterexample → deduplication → deletion test
-                              ↓
-             Student version + teacher version + structured package
-```
+## Quick Start
 
-A package can be marked `READY` only when every hard gate passes and the run references the single current verified lexicon for that exact lesson. With only a title and no matching verified lexicon, the Skill still generates a complete candidate package, but the status must remain `PENDING_JUDGMENT`.
+Copy the inner `lesson-first-judgment-question-sop` folder into your agent's skills directory:
 
-## Quick start
+- **Google Antigravity**: `~/.gemini/config/skills/lesson-first-judgment-question-sop` (Windows: `%USERPROFILE%\.gemini\config\skills\lesson-first-judgment-question-sop`)
+- **Codex**: `~/.codex/skills/lesson-first-judgment-question-sop` (Windows: `%USERPROFILE%\.codex\skills\lesson-first-judgment-question-sop`)
+- **Claude Code**: `~/.claude/skills/lesson-first-judgment-question-sop` (Windows: `%USERPROFILE%\.claude\skills\lesson-first-judgment-question-sop`)
 
-### 1. Install
-
-Download or clone this repository. Copy the inner `lesson-first-judgment-question-sop` folder into your Codex skills directory:
+Then invoke with a lesson title, slides, or teaching notes:
 
 ```text
-Windows: %USERPROFILE%\.codex\skills\lesson-first-judgment-question-sop
-macOS/Linux: ~/.codex/skills/lesson-first-judgment-question-sop
+Use lesson-first-judgment-question-sop for Grade 7 "Central Symmetry" (中心对称).
+Show the lesson profile first, then output both Knowledge and Thinking branches in natural classroom Chinese without forcing a fixed item quota.
 ```
 
-Refresh or restart Codex so it can discover the Skill.
+---
 
-### 2. Ask for a lesson-aligned question set
+## Representative v2.1 Examples
 
-The minimum input is a lesson title:
-
-```text
-Use $lesson-first-judgment-question-sop for the lesson “Commutative and associative laws of integer addition.”
-Show the lesson profile first, then produce the Chinese student and teacher versions.
-Do not fill a fixed item quota.
-```
-
-For stronger alignment, also provide what was actually taught, what was explicitly excluded, or the relevant classroom materials.
-
-### 3. Check the status before use
-
-- `READY` — every hard gate passed; the package can move to final teacher or curriculum review;
-- `PENDING_JUDGMENT` — the full candidate package exists, but an inferred boundary, evidence source, or classroom judgment still needs confirmation;
-- `INSUFFICIENT_INPUT` — the available evidence cannot support a reliable core proposition or a unique truth value.
-
-## Representative knowledge-point examples
-
-The Chinese wording is intentionally preserved because terminology and classroom fluency are part of what the Skill evaluates.
-
-| Knowledge point | Chinese judgment item | Answer | Evidence |
+| Branch | Chinese Judgment Item | Answer | Lesson-Scoped Justification |
 | --- | --- | :---: | --- |
-| Conditions for comparing two angles | 比较两个均小于180°的角时，只让两个角的顶点重合，就能判断它们的大小。 | × | Matching the vertices is not enough; one side must also coincide, with the other two sides placed on the same side of the shared ray. |
-| Two kinds of certain events | 确定事件都是确定会发生的事件。 | × | A certain event may be guaranteed to occur or guaranteed not to occur. |
-| Range of an obtuse angle | 大于90°的角都是钝角。 | × | A straight angle is 180°, which is greater than 90° but is not obtuse. |
+| Knowledge | 把成中心对称的两个图形看成一个整体，这个整体一定是中心对称图形。 | √ | Rotating the combined figure 180° around the symmetry center swaps the two parts, leaving the whole figure invariant. |
+| Thinking | 看到两个三角形的三组边分别平行且相等，就可以断定这两个三角形成中心对称。 | × | Counterexample: two triangles related by translation also have three pairs of parallel and equal sides. |
+| Thinking | 计算 (2b－a)² 时，小华为了把 a 放到前面，直接改写成 (a－2b)² 来展开。 | √ | Opposites have equal squares: (2b－a)² = [－(a－2b)]² = (a－2b)². |
 
-The [Chinese README](README.md#案例示范知识点对应判断题) lists 27 lesson-tested mappings in the form `knowledge point → judgment item → answer → proof or counterexample`.
+---
 
-## Three working modes
+## Validation
 
-- **Generate** — create and audit a new set from the current lesson content;
-- **Audit** — classify each existing item as keep, minimally revise, or drop;
-- **Minimal revision** — preserve the original intent while fixing scope, ambiguity, multiple targets, or invalid evidence.
-
-## Repository layout
-
-```text
-.
-├─ lesson-first-judgment-question-sop/   # Installable Skill
-│  ├─ SKILL.md                            # Core workflow
-│  ├─ agents/openai.yaml                  # Codex interface metadata
-│  ├─ scripts/audit_terms.py              # Terminology audit script
-│  └─ references/                         # Quality gates, output contracts, synthetic lexicon
-├─ assets/workflow-guizang.png            # Workflow illustration
-├─ examples/                              # Synthetic input and output
-├─ tests/validate_release.py              # Public-release validation
-├─ .github/workflows/validate.yml         # GitHub Actions
-├─ README.md                              # Chinese product page
-├─ README_EN.md                           # English product page
-└─ LICENSE
-```
-
-The root-level READMEs, `examples/`, and `tests/` support public documentation and release validation. They are not required runtime context for the installed Skill.
-
-## Synthetic example and real lesson lexicons
-
-- [Synthetic input](examples/sample-input.md)
-- [Synthetic output](examples/sample-output.md)
-
-`SYNTHETIC-G7-I1.json` demonstrates the lexicon schema and tests the audit script. It is not a lexicon for any real textbook, school, or lesson, and it must not be used as terminology evidence for a real classroom run.
-
-Real lesson lexicons are edition- and lesson-specific. Do not reuse one across textbooks, editions, or lessons without source verification.
-
-## Local validation
-
-Run the complete public-release check from the repository root:
+Run the zero-dependency validation suite from the repository root:
 
 ```bash
 python tests/validate_release.py
 ```
 
-The check covers required files, Skill frontmatter, JSON parsing, Python compilation, UTF-8, public-content scanning, README language links, and allow/block smoke tests for terminology auditing. The included GitHub Actions workflow runs the same validation on pushes and pull requests.
-
-## Capability boundaries
-
-- The terminology script audits caller-supplied candidate terms; it cannot discover every professional term in arbitrary prose.
-- Mathematical truth values, proofs, and counterexamples still require item-level review.
-- A lesson scope inferred from a title is not evidence of what a particular class actually learned.
-- The Skill does not present plausible student difficulties as diagnosed misconceptions.
-- Final classroom use remains a teacher or curriculum-review decision.
-
-## Data and copyright boundary
-
-Use real classroom materials only when you have the right to do so. Store only the terminology, status, and source location needed for the task. Do not publish copyrighted textbook pages or passages, internal school materials, student information, or private lexicons directly derived from those materials.
-
-## License
-
-Original content in this repository is released under the [MIT License](LICENSE). Third-party materials are outside the scope of this license.
+This checks repository structure, frontmatter, JSON schemas, compilation of all four Python scripts, terminology pass/block smoke tests, v2.1 natural-Chinese linter smoke tests (`validate_dual_output.py`), and public privacy boundaries.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the public release using only the Python standard library."""
+"""Validate the public v2.1 release using only the Python standard library."""
 
 from __future__ import annotations
 
@@ -29,14 +29,17 @@ def require_files() -> None:
         SKILL_ROOT / "SKILL.md",
         SKILL_ROOT / "agents" / "openai.yaml",
         SKILL_ROOT / "scripts" / "audit_terms.py",
+        SKILL_ROOT / "scripts" / "promote_lesson_lexicon.py",
+        SKILL_ROOT / "scripts" / "validate_count_formation.py",
+        SKILL_ROOT / "scripts" / "validate_dual_output.py",
+        SKILL_ROOT / "references" / "lesson-first-foundation.md",
+        SKILL_ROOT / "references" / "dual-branches.md",
+        SKILL_ROOT / "references" / "count-formation.md",
         SKILL_ROOT / "references" / "terminology-policy.md",
         SKILL_ROOT / "references" / "quality-gates.md",
         SKILL_ROOT / "references" / "output-schema.md",
         SKILL_ROOT / "references" / "run-artifact-policy.md",
-        SKILL_ROOT
-        / "references"
-        / "lesson-lexicons"
-        / "SYNTHETIC-G7-I1.json",
+        SKILL_ROOT / "references" / "lesson-lexicons" / "SYNTHETIC-G7-I1.json",
     ]
     missing = [str(path.relative_to(REPO_ROOT)) for path in required if not path.is_file()]
     if missing:
@@ -76,20 +79,15 @@ def validate_json() -> None:
 
 
 def validate_python() -> None:
-    source = SKILL_ROOT / "scripts" / "audit_terms.py"
     with tempfile.TemporaryDirectory() as temp_dir:
-        target = Path(temp_dir) / "audit_terms.pyc"
-        py_compile.compile(str(source), cfile=str(target), doraise=True)
+        for source in sorted((SKILL_ROOT / "scripts").glob("*.py")):
+            target = Path(temp_dir) / f"{source.stem}.pyc"
+            py_compile.compile(str(source), cfile=str(target), doraise=True)
 
 
 def validate_term_smoke_tests() -> None:
     script = SKILL_ROOT / "scripts" / "audit_terms.py"
-    lexicon = (
-        SKILL_ROOT
-        / "references"
-        / "lesson-lexicons"
-        / "SYNTHETIC-G7-I1.json"
-    )
+    lexicon = SKILL_ROOT / "references" / "lesson-lexicons" / "SYNTHETIC-G7-I1.json"
     common_args = [
         sys.executable,
         str(script),
@@ -116,8 +114,7 @@ def validate_term_smoke_tests() -> None:
     )
     if allowed.returncode != 0:
         raise AssertionError(f"Allowed-term smoke test failed: {allowed.stderr}")
-    allowed_report = json.loads(allowed.stdout)
-    if allowed_report.get("overall") != "PASS":
+    if json.loads(allowed.stdout).get("overall") != "PASS":
         raise AssertionError("Allowed-term smoke test did not return overall PASS")
 
     blocked = subprocess.run(
@@ -132,11 +129,84 @@ def validate_term_smoke_tests() -> None:
     if blocked.returncode == 0:
         raise AssertionError("Blocked-term smoke test unexpectedly exited successfully")
     blocked_report = json.loads(blocked.stdout)
-    if (
-        blocked_report.get("overall") != "FAIL"
-        or "分配律" not in blocked_report.get("blocked_terms", [])
-    ):
+    if blocked_report.get("overall") != "FAIL" or "分配律" not in blocked_report.get("blocked_terms", []):
         raise AssertionError("Blocked-term smoke test did not block 分配律")
+
+
+def validate_v21_dual_smoke_tests() -> None:
+    script = SKILL_ROOT / "scripts" / "validate_dual_output.py"
+    utf8_env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    good_pkg = {
+        "schema_version": "2.1",
+        "output_mode": "DUAL_BRANCH",
+        "status": "READY",
+        "lesson_profile": {"lesson_id": "SYNTHETIC-G7-I1", "lesson_title": "整数加法交换律"},
+        "group_assumption": "",
+        "branches": [
+            {
+                "branch_id": "KNOWLEDGE",
+                "items": [
+                    {
+                        "item_id": "K1",
+                        "statement": "两个整数相加，交换加数的位置，和不变。",
+                        "answer": True,
+                        "proof_or_counterexample": "符合加法交换律。",
+                    }
+                ],
+            },
+            {
+                "branch_id": "STUDENT_THINKING",
+                "items": [
+                    {
+                        "item_id": "T1",
+                        "statement": "计算 (-17)+25+17 时，可以先算 (-17)+17。",
+                        "answer": True,
+                        "proof_or_counterexample": "由交换律和结合律可得。",
+                    }
+                ],
+            },
+        ],
+        "spoken_rewrite_log": [
+            {
+                "before": "对于任意给定的两个整数，交换位置和不变。",
+                "action": "REWRITE",
+                "after": "两个整数相加，交换加数的位置，和不变。",
+                "reason": "去掉法条腔前缀",
+            }
+        ],
+    }
+    bad_pkg = json.loads(json.dumps(good_pkg))
+    bad_pkg["branches"][1]["items"][0]["statement"] = "小明认为可以先算。他的想法正确。"
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        good_path = Path(temp_dir) / "good.json"
+        bad_path = Path(temp_dir) / "bad.json"
+        good_path.write_text(json.dumps(good_pkg, ensure_ascii=False), encoding="utf-8")
+        bad_path.write_text(json.dumps(bad_pkg, ensure_ascii=False), encoding="utf-8")
+
+        res_good = subprocess.run(
+            [sys.executable, str(script), str(good_path)],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=utf8_env,
+            check=False,
+        )
+        if res_good.returncode != 0 or json.loads(res_good.stdout).get("status") != "PASS":
+            raise AssertionError(f"v2.1 good package failed: {res_good.stdout} {res_good.stderr}")
+
+        res_bad = subprocess.run(
+            [sys.executable, str(script), str(bad_path)],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            env=utf8_env,
+            check=False,
+        )
+        if res_bad.returncode == 0 or json.loads(res_bad.stdout).get("status") != "FAIL":
+            raise AssertionError("v2.1 bad package with forbidden tail was not blocked")
 
 
 def validate_public_content() -> None:
@@ -156,6 +226,8 @@ def validate_public_content() -> None:
     checked_suffixes = {".md", ".json", ".yaml", ".yml", ".py"}
     for path in REPO_ROOT.rglob("*"):
         if not path.is_file() or path.suffix.lower() not in checked_suffixes:
+            continue
+        if ".git" in path.parts:
             continue
         if path.resolve() == Path(__file__).resolve():
             continue
@@ -185,6 +257,7 @@ def main() -> int:
         validate_json,
         validate_python,
         validate_term_smoke_tests,
+        validate_v21_dual_smoke_tests,
         validate_public_content,
         validate_readme_language_switch,
     ]
